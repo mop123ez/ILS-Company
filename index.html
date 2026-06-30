@@ -1,0 +1,871 @@
+<!doctype html>
+<html lang="th" class="h-full">
+ <head><script>window["__codeletBootstrap__"]=JSON.parse('{"A":"A","B":"20260630-05-8900874"}');</script><script src="/_sdk/e4192b04afde3ce7.telemetry_sdk.js" integrity="sha512-4eZpyKBd3YJnsIPrIpaBqo7QT5UZ6+KSFXkSu1IQiB7jKM8y67ChRhZ5Yh6JfuOJCbPdISiNcS6nLKZzIMG1uQ=="></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stock Trading Simulator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/_sdk/55a31eac937b0c74.element_sdk.js" integrity="sha512-0kIuEfhRPNmBFXTjGHEKf+empPPO/fnvfhJQ9f7lB5PiWMx4+JpB4JhdGG3l/nAaQlpbbl3k4UyChI6a2CursA=="></script>
+  <script src="/_sdk/48bf7c4c70d0d03c.data_sdk.js" integrity="sha512-e/yrQJz+prdXXt4yUvxXhl1WBGu3BRkP8X0fipGXI5gqiFClI7wI6K3TQnD7d63vx+BVhwzIvY6r8OrpX7lXJA=="></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&amp;family=Sarabun:wght@300;400;600;700&amp;display=swap" rel="stylesheet">
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+    
+    @keyframes ticker-scroll {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(-100%); }
+    }
+    
+    @keyframes pulse-glow {
+      0%, 100% { 
+        box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+      }
+      50% { 
+        box-shadow: 0 0 40px rgba(34, 197, 94, 0.6);
+      }
+    }
+    
+    @keyframes price-flash {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+    
+    @keyframes slide-in {
+      0% { 
+        transform: translateX(-20px);
+        opacity: 0;
+      }
+      100% { 
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    
+    @keyframes bounce-subtle {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-5px); }
+    }
+    
+    .ticker-scroll {
+      animation: ticker-scroll 30s linear infinite;
+    }
+    
+    .pulse-glow {
+      animation: pulse-glow 2s ease-in-out infinite;
+    }
+    
+    .price-flash {
+      animation: price-flash 0.5s ease-in-out;
+    }
+    
+    .slide-in {
+      animation: slide-in 0.4s ease-out;
+    }
+    
+    .bounce-subtle {
+      animation: bounce-subtle 2s ease-in-out infinite;
+    }
+    
+    .trading-card {
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.8) 100%);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(34, 197, 94, 0.2);
+    }
+    
+    .chart-grid {
+      background-image: 
+        linear-gradient(rgba(34, 197, 94, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(34, 197, 94, 0.1) 1px, transparent 1px);
+      background-size: 30px 30px;
+    }
+    
+    .stock-price-up {
+      color: #22c55e;
+      text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+    }
+    
+    .stock-price-down {
+      color: #ef4444;
+      text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+    }
+    
+    .neon-border {
+      border: 2px solid;
+      border-image: linear-gradient(45deg, #22c55e, #3b82f6, #22c55e) 1;
+    }
+    
+    .glass-morphism {
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .profit-indicator {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+    
+    .profit-positive {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: white;
+    }
+    
+    .profit-negative {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: white;
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+ </head>
+ <body class="h-full overflow-auto">
+  <div id="app" class="min-h-full w-full bg-gradient-to-br from-slate-950 via-emerald-950 to-slate-950 chart-grid p-4 md:p-6" style="font-family: 'Sarabun', sans-serif;">
+   <div class="max-w-7xl mx-auto"><!-- Ticker Tape -->
+    <div class="glass-morphism rounded-xl p-3 mb-4 overflow-hidden">
+     <div class="ticker-scroll whitespace-nowrap"><span id="ticker-tape" class="inline-flex gap-8 text-sm font-mono"></span>
+     </div>
+    </div><!-- Header -->
+    <header class="trading-card rounded-2xl p-6 mb-6 slide-in">
+     <div class="flex items-center justify-between flex-wrap gap-4">
+      <div>
+       <div class="flex items-center gap-3 mb-2">
+        <div class="text-5xl bounce-subtle">
+         📈
+        </div>
+        <h1 id="platform-title" class="text-3xl md:text-4xl font-bold text-green-400" style="font-family: 'Orbitron', sans-serif;">STOCK TRADING SIMULATOR</h1>
+       </div>
+       <p id="subtitle" class="text-emerald-300 text-sm md:text-base">ซื้อขายหุ้นแบบจำลองเรียลไทม์ 💰</p>
+      </div>
+      <div class="glass-morphism px-6 py-4 rounded-xl neon-border">
+       <div class="text-gray-400 text-xs mb-1">
+        เงินทุน
+       </div>
+       <div id="balance" class="text-3xl font-bold text-green-400 font-mono">
+        ฿100,000
+       </div>
+      </div>
+     </div>
+    </header><!-- Market Overview -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+     <div class="trading-card rounded-xl p-4 slide-in">
+      <div class="text-gray-400 text-xs mb-2">
+       SET Index
+      </div>
+      <div id="set-index" class="text-2xl font-bold text-white font-mono">
+       1,523.45
+      </div>
+      <div id="set-change" class="text-sm stock-price-up mt-1">
+       +12.34 (+0.82%)
+      </div>
+     </div>
+     <div class="trading-card rounded-xl p-4 slide-in">
+      <div class="text-gray-400 text-xs mb-2">
+       กำไร/ขาดทุน
+      </div>
+      <div id="total-pl" class="text-2xl font-bold font-mono text-green-400">
+       ฿0
+      </div>
+      <div id="pl-percent" class="text-sm text-gray-400 mt-1">
+       0.00%
+      </div>
+     </div>
+     <div class="trading-card rounded-xl p-4 slide-in">
+      <div class="text-gray-400 text-xs mb-2">
+       จำนวนการเทรด
+      </div>
+      <div id="trade-count" class="text-2xl font-bold text-white font-mono">
+       0
+      </div>
+      <div class="text-sm text-gray-400 mt-1">
+       รายการ
+      </div>
+     </div>
+     <div class="trading-card rounded-xl p-4 slide-in">
+      <div class="text-gray-400 text-xs mb-2">
+       อัตราชนะ
+      </div>
+      <div id="win-rate" class="text-2xl font-bold text-blue-400 font-mono">
+       0%
+      </div>
+      <div class="text-sm text-gray-400 mt-1">
+       สถิติ
+      </div>
+     </div>
+    </div><!-- Trading Panel -->
+    <div class="grid md:grid-cols-3 gap-6 mb-6"><!-- Stock Selection -->
+     <div class="md:col-span-2">
+      <div class="trading-card rounded-xl p-6">
+       <h3 class="text-white font-bold text-lg mb-4 flex items-center gap-2" style="font-family: 'Orbitron', sans-serif;"><span class="text-2xl">📊</span> เลือกหุ้น</h3>
+       <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4"><button onclick="selectStock('PTT')" class="stock-btn glass-morphism hover:bg-green-500/20 p-4 rounded-lg transition border border-green-500/30">
+         <div class="font-bold text-white mb-1">
+          PTT
+         </div>
+         <div id="price-PTT" class="text-lg font-mono text-green-400">
+          ฿38.50
+         </div>
+         <div id="change-PTT" class="text-xs stock-price-up">
+          +0.50
+         </div></button> <button onclick="selectStock('KBANK')" class="stock-btn glass-morphism hover:bg-green-500/20 p-4 rounded-lg transition border border-green-500/30">
+         <div class="font-bold text-white mb-1">
+          KBANK
+         </div>
+         <div id="price-KBANK" class="text-lg font-mono text-green-400">
+          ฿145.00
+         </div>
+         <div id="change-KBANK" class="text-xs stock-price-up">
+          +1.25
+         </div></button> <button onclick="selectStock('CPALL')" class="stock-btn glass-morphism hover:bg-green-500/20 p-4 rounded-lg transition border border-green-500/30">
+         <div class="font-bold text-white mb-1">
+          CPALL
+         </div>
+         <div id="price-CPALL" class="text-lg font-mono text-green-400">
+          ฿62.25
+         </div>
+         <div id="change-CPALL" class="text-xs stock-price-down">
+          -0.75
+         </div></button> <button onclick="selectStock('AOT')" class="stock-btn glass-morphism hover:bg-green-500/20 p-4 rounded-lg transition border border-green-500/30">
+         <div class="font-bold text-white mb-1">
+          AOT
+         </div>
+         <div id="price-AOT" class="text-lg font-mono text-green-400">
+          ฿68.75
+         </div>
+         <div id="change-AOT" class="text-xs stock-price-up">
+          +0.25
+         </div></button> <button onclick="selectStock('SCB')" class="stock-btn glass-morphism hover:bg-green-500/20 p-4 rounded-lg transition border border-green-500/30">
+         <div class="font-bold text-white mb-1">
+          SCB
+         </div>
+         <div id="price-SCB" class="text-lg font-mono text-green-400">
+          ฿118.50
+         </div>
+         <div id="change-SCB" class="text-xs stock-price-up">
+          +2.00
+         </div></button> <button onclick="selectStock('TRUE')" class="stock-btn glass-morphism hover:bg-green-500/20 p-4 rounded-lg transition border border-green-500/30">
+         <div class="font-bold text-white mb-1">
+          TRUE
+         </div>
+         <div id="price-TRUE" class="text-lg font-mono text-green-400">
+          ฿9.85
+         </div>
+         <div id="change-TRUE" class="text-xs stock-price-down">
+          -0.15
+         </div></button>
+       </div><!-- Price Chart -->
+       <div class="glass-morphism rounded-lg p-4">
+        <div class="flex items-center justify-between mb-3">
+         <div><span id="selected-stock" class="text-xl font-bold text-white">-</span> <span id="selected-price" class="text-2xl font-bold text-green-400 ml-3 font-mono">฿0.00</span>
+         </div>
+         <div id="price-trend" class="text-sm"></div>
+        </div>
+        <canvas id="price-chart" class="w-full" height="120"></canvas>
+       </div>
+      </div>
+     </div><!-- Order Panel -->
+     <div>
+      <div class="trading-card rounded-xl p-6">
+       <h3 class="text-white font-bold text-lg mb-4" style="font-family: 'Orbitron', sans-serif;"><span class="text-2xl">💼</span> สั่งซื้อ/ขาย</h3>
+       <div class="space-y-4">
+        <div><label class="block text-gray-300 text-sm mb-2">จำนวนหุ้น</label> <input type="number" id="quantity-input" value="100" min="1" step="1" class="w-full bg-slate-800/80 border border-green-500/30 rounded-lg px-4 py-3 text-white text-center text-xl font-mono focus:outline-none focus:ring-2 focus:ring-green-500">
+        </div>
+        <div class="glass-morphism rounded-lg p-3">
+         <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">ราคาต่อหุ้น</span> <span id="order-price" class="text-white font-mono">฿0.00</span>
+         </div>
+         <div class="flex justify-between text-sm"><span class="text-gray-400">มูลค่ารวม</span> <span id="order-total" class="text-green-400 font-bold font-mono">฿0.00</span>
+         </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3"><button id="buy-btn" onclick="executeTrade('BUY')" disabled class="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl shadow-lg transform transition hover:scale-105"> <span id="buy-button-text">ซื้อ</span> 📈 </button> <button id="sell-btn" onclick="executeTrade('SELL')" disabled class="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl shadow-lg transform transition hover:scale-105"> <span id="sell-button-text">ขาย</span> 📉 </button>
+        </div>
+        <div id="order-message" class="text-center text-sm text-gray-400 mt-2"></div>
+       </div>
+      </div><!-- Portfolio Summary -->
+      <div class="trading-card rounded-xl p-6 mt-6">
+       <h3 class="text-white font-bold text-sm mb-3">💼 พอร์ตของฉัน</h3>
+       <div id="portfolio-summary" class="space-y-2 text-xs">
+        <div class="text-gray-400 text-center py-4">
+         ยังไม่มีหุ้นในพอร์ต
+        </div>
+       </div>
+      </div>
+     </div>
+    </div><!-- Trade History -->
+    <div class="trading-card rounded-xl p-6">
+     <h3 class="text-white font-bold text-lg mb-4 flex items-center justify-between"><span class="flex items-center gap-2" style="font-family: 'Orbitron', sans-serif;"> <span class="text-2xl">📜</span> ประวัติการเทรด </span> <button onclick="clearHistory()" class="text-xs bg-red-500/20 hover:bg-red-500/30 text-red-400 px-3 py-1 rounded-lg border border-red-500/30"> ล้างประวัติ </button></h3>
+     <div id="trade-history" class="space-y-2 max-h-96 overflow-y-auto">
+      <div class="text-gray-400 text-center py-8">
+       ยังไม่มีประวัติการเทรด
+      </div>
+     </div>
+    </div>
+   </div>
+  </div>
+  <script>
+    // Stock Data
+    const STOCKS = {
+      'PTT': { price: 38.50, basePrice: 38.50 },
+      'KBANK': { price: 145.00, basePrice: 145.00 },
+      'CPALL': { price: 62.25, basePrice: 62.25 },
+      'AOT': { price: 68.75, basePrice: 68.75 },
+      'SCB': { price: 118.50, basePrice: 118.50 },
+      'TRUE': { price: 9.85, basePrice: 9.85 }
+    };
+    
+    let tradeHistory = [];
+    let portfolio = {};
+    let balance = 100000;
+    let selectedStock = null;
+    let priceHistory = [];
+    let updateInterval = null;
+    
+    const MAX_PRICE_HISTORY = 30;
+    
+    // Default config
+    const defaultConfig = {
+      platform_title: 'STOCK TRADING SIMULATOR',
+      subtitle: 'ซื้อขายหุ้นแบบจำลองเรียลไทม์ 💰',
+      buy_button: 'ซื้อ',
+      sell_button: 'ขาย',
+      background_color: '#020617',
+      surface_color: '#0f172a',
+      text_color: '#22c55e',
+      primary_action_color: '#16a34a',
+      secondary_action_color: '#dc2626',
+      font_family: 'Sarabun',
+      font_size: 16
+    };
+    
+    // Data handler
+    const dataHandler = {
+      onDataChanged(data) {
+        tradeHistory = data;
+        renderTradeHistory();
+        calculateStats();
+        updatePortfolio();
+      }
+    };
+    
+    // Initialize SDKs
+    async function initApp() {
+      if (window.elementSdk) {
+        window.elementSdk.init({
+          defaultConfig,
+          onConfigChange: async (config) => {
+            const title = config.platform_title || defaultConfig.platform_title;
+            const subtitle = config.subtitle || defaultConfig.subtitle;
+            const buyBtn = config.buy_button || defaultConfig.buy_button;
+            const sellBtn = config.sell_button || defaultConfig.sell_button;
+            const textColor = config.text_color || defaultConfig.text_color;
+            const fontFamily = config.font_family || defaultConfig.font_family;
+            const fontSize = config.font_size || defaultConfig.font_size;
+            
+            document.getElementById('platform-title').textContent = title;
+            document.getElementById('subtitle').textContent = subtitle;
+            document.getElementById('buy-button-text').textContent = buyBtn;
+            document.getElementById('sell-button-text').textContent = sellBtn;
+            
+            const app = document.getElementById('app');
+            app.style.fontFamily = `${fontFamily}, Sarabun, sans-serif`;
+            app.style.fontSize = `${fontSize}px`;
+            
+            document.getElementById('platform-title').style.color = textColor;
+          },
+          mapToCapabilities: (config) => ({
+            recolorables: [
+              {
+                get: () => config.background_color || defaultConfig.background_color,
+                set: (v) => { config.background_color = v; window.elementSdk.setConfig({ background_color: v }); }
+              },
+              {
+                get: () => config.surface_color || defaultConfig.surface_color,
+                set: (v) => { config.surface_color = v; window.elementSdk.setConfig({ surface_color: v }); }
+              },
+              {
+                get: () => config.text_color || defaultConfig.text_color,
+                set: (v) => { config.text_color = v; window.elementSdk.setConfig({ text_color: v }); }
+              },
+              {
+                get: () => config.primary_action_color || defaultConfig.primary_action_color,
+                set: (v) => { config.primary_action_color = v; window.elementSdk.setConfig({ primary_action_color: v }); }
+              },
+              {
+                get: () => config.secondary_action_color || defaultConfig.secondary_action_color,
+                set: (v) => { config.secondary_action_color = v; window.elementSdk.setConfig({ secondary_action_color: v }); }
+              }
+            ],
+            borderables: [],
+            fontEditable: {
+              get: () => config.font_family || defaultConfig.font_family,
+              set: (v) => { config.font_family = v; window.elementSdk.setConfig({ font_family: v }); }
+            },
+            fontSizeable: {
+              get: () => config.font_size || defaultConfig.font_size,
+              set: (v) => { config.font_size = v; window.elementSdk.setConfig({ font_size: v }); }
+            }
+          }),
+          mapToEditPanelValues: (config) => new Map([
+            ['platform_title', config.platform_title || defaultConfig.platform_title],
+            ['subtitle', config.subtitle || defaultConfig.subtitle],
+            ['buy_button', config.buy_button || defaultConfig.buy_button],
+            ['sell_button', config.sell_button || defaultConfig.sell_button]
+          ])
+        });
+      }
+      
+      if (window.dataSdk) {
+        const result = await window.dataSdk.init(dataHandler);
+        if (!result.isOk) {
+          console.error('Failed to initialize data SDK');
+        }
+      }
+      
+      startMarketUpdates();
+      updateTickerTape();
+      setInterval(updateTickerTape, 100);
+      
+      document.getElementById('quantity-input').addEventListener('input', updateOrderPreview);
+    }
+    
+    function startMarketUpdates() {
+      updateInterval = setInterval(() => {
+        updateStockPrices();
+        if (selectedStock) {
+          updatePriceChart();
+        }
+      }, 1000);
+    }
+    
+    function updateStockPrices() {
+      Object.keys(STOCKS).forEach(symbol => {
+        const change = (Math.random() - 0.5) * 2;
+        STOCKS[symbol].price = Math.max(1, STOCKS[symbol].price + change);
+        
+        const priceEl = document.getElementById(`price-${symbol}`);
+        const changeEl = document.getElementById(`change-${symbol}`);
+        
+        if (priceEl) {
+          priceEl.textContent = `฿${STOCKS[symbol].price.toFixed(2)}`;
+          priceEl.classList.add('price-flash');
+          setTimeout(() => priceEl.classList.remove('price-flash'), 500);
+        }
+        
+        if (changeEl) {
+          const diff = STOCKS[symbol].price - STOCKS[symbol].basePrice;
+          changeEl.textContent = `${diff >= 0 ? '+' : ''}${diff.toFixed(2)}`;
+          changeEl.className = diff >= 0 ? 'text-xs stock-price-up' : 'text-xs stock-price-down';
+        }
+      });
+      
+      // Update selected stock price
+      if (selectedStock) {
+        document.getElementById('selected-price').textContent = `฿${STOCKS[selectedStock].price.toFixed(2)}`;
+        updateOrderPreview();
+      }
+    }
+    
+    function updateTickerTape() {
+      const tape = Object.keys(STOCKS).map(symbol => {
+        const stock = STOCKS[symbol];
+        const diff = stock.price - stock.basePrice;
+        const color = diff >= 0 ? 'text-green-400' : 'text-red-400';
+        return `<span class="${color}">${symbol}: ฿${stock.price.toFixed(2)} ${diff >= 0 ? '▲' : '▼'} ${Math.abs(diff).toFixed(2)}</span>`;
+      }).join('');
+      
+      document.getElementById('ticker-tape').innerHTML = tape + '&nbsp;&nbsp;&nbsp;' + tape;
+    }
+    
+    function selectStock(symbol) {
+      selectedStock = symbol;
+      priceHistory = [STOCKS[symbol].price];
+      
+      document.getElementById('selected-stock').textContent = symbol;
+      document.getElementById('selected-price').textContent = `฿${STOCKS[symbol].price.toFixed(2)}`;
+      
+      document.querySelectorAll('.stock-btn').forEach(btn => {
+        btn.classList.remove('pulse-glow');
+      });
+      event.currentTarget.classList.add('pulse-glow');
+      
+      document.getElementById('buy-btn').disabled = false;
+      document.getElementById('sell-btn').disabled = false;
+      document.getElementById('order-message').textContent = `เลือก ${symbol} แล้ว - พร้อมซื้อขาย`;
+      document.getElementById('order-message').className = 'text-center text-sm text-green-400 mt-2';
+      
+      updateOrderPreview();
+      drawPriceChart();
+    }
+    
+    function updateOrderPreview() {
+      if (!selectedStock) return;
+      
+      const quantity = parseInt(document.getElementById('quantity-input').value) || 0;
+      const price = STOCKS[selectedStock].price;
+      const total = quantity * price;
+      
+      document.getElementById('order-price').textContent = `฿${price.toFixed(2)}`;
+      document.getElementById('order-total').textContent = `฿${total.toFixed(2)}`;
+      
+      // Check if can afford
+      if (total > balance) {
+        document.getElementById('buy-btn').disabled = true;
+        document.getElementById('order-message').textContent = 'เงินไม่พอ';
+        document.getElementById('order-message').className = 'text-center text-sm text-red-400 mt-2';
+      } else {
+        document.getElementById('buy-btn').disabled = false;
+        if (selectedStock) {
+          document.getElementById('order-message').textContent = `พร้อมซื้อขาย ${selectedStock}`;
+          document.getElementById('order-message').className = 'text-center text-sm text-green-400 mt-2';
+        }
+      }
+      
+      // Check if have stock to sell
+      if (!portfolio[selectedStock] || portfolio[selectedStock].quantity < quantity) {
+        document.getElementById('sell-btn').disabled = true;
+      } else {
+        document.getElementById('sell-btn').disabled = false;
+      }
+    }
+    
+    async function executeTrade(type) {
+      if (!selectedStock) return;
+      
+      if (tradeHistory.length >= 999) {
+        showToast('⚠️ บันทึกได้สูงสุด 999 รายการ', 'warning');
+        return;
+      }
+      
+      const quantity = parseInt(document.getElementById('quantity-input').value) || 0;
+      const price = STOCKS[selectedStock].price;
+      const total = quantity * price;
+      
+      if (quantity <= 0) {
+        showToast('❌ ระบุจำนวนหุ้น', 'error');
+        return;
+      }
+      
+      let profitLoss = 0;
+      
+      if (type === 'BUY') {
+        if (total > balance) {
+          showToast('❌ เงินไม่พอซื้อ', 'error');
+          return;
+        }
+        
+        balance -= total;
+        
+        if (!portfolio[selectedStock]) {
+          portfolio[selectedStock] = { quantity: 0, avgPrice: 0 };
+        }
+        
+        const oldTotal = portfolio[selectedStock].quantity * portfolio[selectedStock].avgPrice;
+        portfolio[selectedStock].quantity += quantity;
+        portfolio[selectedStock].avgPrice = (oldTotal + total) / portfolio[selectedStock].quantity;
+        
+        showToast(`✅ ซื้อ ${selectedStock} ${quantity} หุ้น`, 'success');
+      } else {
+        if (!portfolio[selectedStock] || portfolio[selectedStock].quantity < quantity) {
+          showToast('❌ หุ้นไม่พอขาย', 'error');
+          return;
+        }
+        
+        balance += total;
+        profitLoss = (price - portfolio[selectedStock].avgPrice) * quantity;
+        
+        portfolio[selectedStock].quantity -= quantity;
+        if (portfolio[selectedStock].quantity === 0) {
+          delete portfolio[selectedStock];
+        }
+        
+        showToast(`✅ ขาย ${selectedStock} ${quantity} หุ้น`, 'success');
+      }
+      
+      document.getElementById('balance').textContent = `฿${balance.toFixed(2)}`;
+      
+      if (window.dataSdk) {
+        const record = {
+          trade_id: Date.now().toString(),
+          stock_symbol: selectedStock,
+          trade_type: type,
+          quantity: quantity,
+          price: price,
+          total_value: total,
+          timestamp: new Date().toISOString(),
+          profit_loss: profitLoss
+        };
+        
+        const result = await window.dataSdk.create(record);
+        if (!result.isOk) {
+          showToast('❌ ไม่สามารถบันทึกได้', 'error');
+        }
+      }
+      
+      updateOrderPreview();
+      renderPortfolioSummary();
+    }
+    
+    function updatePriceChart() {
+      if (!selectedStock) return;
+      
+      priceHistory.push(STOCKS[selectedStock].price);
+      if (priceHistory.length > MAX_PRICE_HISTORY) {
+        priceHistory.shift();
+      }
+      
+      drawPriceChart();
+    }
+    
+    function drawPriceChart() {
+      const canvas = document.getElementById('price-chart');
+      const ctx = canvas.getContext('2d');
+      const width = canvas.width = canvas.offsetWidth;
+      const height = canvas.height;
+      
+      ctx.clearRect(0, 0, width, height);
+      
+      if (priceHistory.length < 2) return;
+      
+      const maxPrice = Math.max(...priceHistory);
+      const minPrice = Math.min(...priceHistory);
+      const priceRange = maxPrice - minPrice || 1;
+      
+      // Draw grid
+      ctx.strokeStyle = 'rgba(34, 197, 94, 0.1)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 4; i++) {
+        const y = (height / 4) * i;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+      
+      // Draw price line
+      const firstPrice = priceHistory[0];
+      const lastPrice = priceHistory[priceHistory.length - 1];
+      const isUp = lastPrice >= firstPrice;
+      
+      ctx.strokeStyle = isUp ? '#22c55e' : '#ef4444';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      
+      const step = width / (MAX_PRICE_HISTORY - 1);
+      priceHistory.forEach((price, index) => {
+        const x = index * step;
+        const y = height - ((price - minPrice) / priceRange) * height;
+        if (index === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      });
+      
+      ctx.stroke();
+      
+      // Fill area
+      ctx.lineTo(width, height);
+      ctx.lineTo(0, height);
+      ctx.closePath();
+      ctx.fillStyle = isUp ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)';
+      ctx.fill();
+      
+      // Update trend
+      const change = lastPrice - firstPrice;
+      const changePercent = (change / firstPrice) * 100;
+      document.getElementById('price-trend').innerHTML = `
+        <span class="${isUp ? 'stock-price-up' : 'stock-price-down'}">
+          ${isUp ? '▲' : '▼'} ${Math.abs(change).toFixed(2)} (${changePercent.toFixed(2)}%)
+        </span>
+      `;
+    }
+    
+    function updatePortfolio() {
+      portfolio = {};
+      tradeHistory.forEach(trade => {
+        if (!portfolio[trade.stock_symbol]) {
+          portfolio[trade.stock_symbol] = { quantity: 0, avgPrice: 0 };
+        }
+        
+        if (trade.trade_type === 'BUY') {
+          const oldTotal = portfolio[trade.stock_symbol].quantity * portfolio[trade.stock_symbol].avgPrice;
+          portfolio[trade.stock_symbol].quantity += trade.quantity;
+          portfolio[trade.stock_symbol].avgPrice = (oldTotal + trade.total_value) / portfolio[trade.stock_symbol].quantity;
+        } else {
+          portfolio[trade.stock_symbol].quantity -= trade.quantity;
+          if (portfolio[trade.stock_symbol].quantity <= 0) {
+            delete portfolio[trade.stock_symbol];
+          }
+        }
+      });
+      
+      renderPortfolioSummary();
+    }
+    
+    function renderPortfolioSummary() {
+      const container = document.getElementById('portfolio-summary');
+      
+      if (Object.keys(portfolio).length === 0) {
+        container.innerHTML = '<div class="text-gray-400 text-center py-4">ยังไม่มีหุ้นในพอร์ต</div>';
+        return;
+      }
+      
+      container.innerHTML = Object.keys(portfolio).map(symbol => {
+        const stock = portfolio[symbol];
+        const currentPrice = STOCKS[symbol].price;
+        const pl = (currentPrice - stock.avgPrice) * stock.quantity;
+        const plPercent = ((currentPrice - stock.avgPrice) / stock.avgPrice) * 100;
+        
+        return `
+          <div class="glass-morphism rounded p-2 flex justify-between items-center">
+            <div>
+              <div class="font-bold text-white">${symbol}</div>
+              <div class="text-xs text-gray-400">${stock.quantity} หุ้น</div>
+            </div>
+            <div class="text-right">
+              <div class="font-mono text-xs ${pl >= 0 ? 'text-green-400' : 'text-red-400'}">
+                ${pl >= 0 ? '+' : ''}฿${pl.toFixed(2)}
+              </div>
+              <div class="text-xs text-gray-400">${plPercent >= 0 ? '+' : ''}${plPercent.toFixed(2)}%</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    function renderTradeHistory() {
+      const container = document.getElementById('trade-history');
+      
+      if (tradeHistory.length === 0) {
+        container.innerHTML = '<div class="text-gray-400 text-center py-8">ยังไม่มีประวัติการเทรด</div>';
+        return;
+      }
+      
+      const sortedHistory = [...tradeHistory].sort((a, b) => 
+        new Date(b.timestamp) - new Date(a.timestamp)
+      );
+      
+      container.innerHTML = sortedHistory.map(trade => {
+        const date = new Date(trade.timestamp);
+        const timeStr = date.toLocaleString('th-TH', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          day: '2-digit',
+          month: 'short'
+        });
+        
+        const isBuy = trade.trade_type === 'BUY';
+        
+        return `
+          <div class="glass-morphism rounded-lg p-4 hover:bg-slate-700/30 transition slide-in">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="text-2xl">${isBuy ? '📈' : '📉'}</div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-white font-bold font-mono">${trade.stock_symbol}</span>
+                    <span class="text-xs ${isBuy ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'} px-2 py-0.5 rounded border ${isBuy ? 'border-green-500/30' : 'border-red-500/30'}">
+                      ${isBuy ? 'ซื้อ' : 'ขาย'}
+                    </span>
+                  </div>
+                  <div class="text-xs text-gray-400 mt-1">
+                    ${trade.quantity} หุ้น @ ฿${trade.price.toFixed(2)}
+                  </div>
+                </div>
+              </div>
+              <div class="text-right">
+                <div class="text-white font-bold font-mono">฿${trade.total_value.toFixed(2)}</div>
+                ${trade.profit_loss !== 0 ? `
+                  <div class="text-xs ${trade.profit_loss >= 0 ? 'text-green-400' : 'text-red-400'} mt-1">
+                    ${trade.profit_loss >= 0 ? '+' : ''}฿${trade.profit_loss.toFixed(2)}
+                  </div>
+                ` : ''}
+                <div class="text-xs text-gray-400 mt-1">${timeStr}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    function calculateStats() {
+      const totalTrades = tradeHistory.length;
+      const totalPL = tradeHistory.reduce((sum, trade) => sum + (trade.profit_loss || 0), 0);
+      const sellTrades = tradeHistory.filter(t => t.trade_type === 'SELL');
+      const winningTrades = sellTrades.filter(t => t.profit_loss > 0).length;
+      const winRate = sellTrades.length > 0 ? (winningTrades / sellTrades.length) * 100 : 0;
+      
+      document.getElementById('trade-count').textContent = totalTrades;
+      document.getElementById('total-pl').textContent = `฿${totalPL.toFixed(2)}`;
+      document.getElementById('total-pl').className = `text-2xl font-bold font-mono ${totalPL >= 0 ? 'text-green-400' : 'text-red-400'}`;
+      
+      const plPercent = ((totalPL / 100000) * 100).toFixed(2);
+      document.getElementById('pl-percent').textContent = `${totalPL >= 0 ? '+' : ''}${plPercent}%`;
+      document.getElementById('pl-percent').className = `text-sm ${totalPL >= 0 ? 'text-green-400' : 'text-red-400'} mt-1`;
+      
+      document.getElementById('win-rate').textContent = `${winRate.toFixed(0)}%`;
+    }
+    
+    async function clearHistory() {
+      if (tradeHistory.length === 0) return;
+      
+      const confirmDiv = document.createElement('div');
+      confirmDiv.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50';
+      confirmDiv.innerHTML = `
+        <div class="trading-card rounded-xl p-6 max-w-md mx-4">
+          <h3 class="text-white font-bold text-lg mb-4">ยืนยันการล้างประวัติ?</h3>
+          <p class="text-gray-300 mb-6">การดำเนินการนี้จะลบประวัติทั้งหมด และรีเซ็ตเงินทุน</p>
+          <div class="flex gap-3">
+            <button onclick="this.closest('.fixed').remove()" class="flex-1 bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 rounded-lg">
+              ยกเลิก
+            </button>
+            <button onclick="confirmClearHistory()" class="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-lg">
+              ลบทั้งหมด
+            </button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(confirmDiv);
+    }
+    
+    async function confirmClearHistory() {
+      document.querySelector('.fixed.inset-0').remove();
+      
+      if (window.dataSdk) {
+        for (const trade of tradeHistory) {
+          await window.dataSdk.delete(trade);
+        }
+      }
+      
+      balance = 100000;
+      portfolio = {};
+      document.getElementById('balance').textContent = `฿${balance.toFixed(2)}`;
+      renderPortfolioSummary();
+      showToast('🗑️ ล้างประวัติเรียบร้อย', 'info');
+    }
+    
+    function showToast(message, type) {
+      const toast = document.createElement('div');
+      toast.className = `fixed top-4 right-4 glass-morphism px-6 py-3 rounded-lg shadow-2xl text-white font-semibold z-50 slide-in ${
+        type === 'success' ? 'border-l-4 border-green-500' :
+        type === 'error' ? 'border-l-4 border-red-500' :
+        type === 'warning' ? 'border-l-4 border-yellow-500' :
+        'border-l-4 border-blue-500'
+      }`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(400px)';
+        toast.style.transition = 'all 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+    
+    // Initialize
+    initApp();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a13bfef076f3f82a',t:'MTc4MjgxMDE4Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
